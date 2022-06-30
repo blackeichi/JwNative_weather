@@ -1,14 +1,22 @@
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View, ScrollView, Dimensions } from "react-native";
 import * as Location from "expo-location";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  Dimensions,
+  ActivityIndicator,
+  StyleSheet,
+  ScrollView,
+} from "react-native";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+const API_KEY = "f00eda783b406e14a84d8a28a8bce36b";
 
 export default function App() {
   const [city, setCity] = useState("Loading...");
-  const [location, setLocation] = useState();
+  const [days, setDays] = useState([]);
   const [ok, setOk] = useState(true);
-  const ask = async () => {
+  const getWeather = async () => {
     const { granted } = await Location.requestForegroundPermissionsAsync();
     if (!granted) {
       setOk(false);
@@ -21,76 +29,78 @@ export default function App() {
       { useGoogleMaps: false }
     );
     setCity(location[0].city);
+    const response = await fetch(
+      `https://api.openweathermap.org/data/2.5/onecall?lat=${latitude}&lon=${longitude}&exclude=alerts&appid=${API_KEY}&units=metric`
+    );
+    const json = await response.json();
+    setDays(json.daily);
   };
   useEffect(() => {
-    ask();
+    getWeather();
   }, []);
   return (
     <View style={styles.container}>
       <View style={styles.city}>
-        <Text style={styles.cityName}>서울</Text>
+        <Text style={styles.cityName}>{city}</Text>
       </View>
       <ScrollView
-        horizontal
         pagingEnabled
+        horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.weatherbox}
+        contentContainerStyle={styles.weather}
       >
-        <View style={styles.day}>
-          <Text style={styles.temper}>27°</Text>
-          <Text style={styles.weather}>Sunny</Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.temper}>27°</Text>
-          <Text style={styles.weather}>Sunny</Text>
-        </View>{" "}
-        <View style={styles.day}>
-          <Text style={styles.temper}>27°</Text>
-          <Text style={styles.weather}>Sunny</Text>
-        </View>{" "}
-        <View style={styles.day}>
-          <Text style={styles.temper}>27°</Text>
-          <Text style={styles.weather}>Sunny</Text>
-        </View>{" "}
-        <View style={styles.day}>
-          <Text style={styles.temper}>27°</Text>
-          <Text style={styles.weather}>Sunny</Text>
-        </View>
+        {days.length === 0 ? (
+          <View style={styles.day}>
+            <ActivityIndicator
+              color="white"
+              style={{ marginTop: 10 }}
+              size="large"
+            />
+          </View>
+        ) : (
+          days.map((day, index) => (
+            <View key={index} style={styles.day}>
+              <Text style={styles.temp}>
+                {parseFloat(day.temp.day).toFixed(1)}
+              </Text>
+              <Text style={styles.description}>{day.weather[0].main}</Text>
+              <Text style={styles.tinyText}>{day.weather[0].description}</Text>
+            </View>
+          ))
+        )}
       </ScrollView>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#5AD18F",
+    backgroundColor: "tomato",
   },
   city: {
-    flex: 1,
+    flex: 1.2,
     justifyContent: "center",
     alignItems: "center",
   },
   cityName: {
-    fontSize: 68,
-    fontWeight: "800",
-    color: "white",
+    fontSize: 58,
+    fontWeight: "500",
   },
-  weatherbox: {
-    flex: 3,
-  },
+  weather: {},
   day: {
     width: SCREEN_WIDTH,
     alignItems: "center",
+  },
+  temp: {
     marginTop: 50,
-    flex: 1,
+    fontWeight: "600",
+    fontSize: 178,
   },
-  temper: {
-    color: "white",
-    fontSize: 100,
+  description: {
+    marginTop: -30,
+    fontSize: 60,
   },
-  weather: {
-    color: "white",
-    fontSize: 40,
+  tinyText: {
+    fontSize: 20,
   },
 });
